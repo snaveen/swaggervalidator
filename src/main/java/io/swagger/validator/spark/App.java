@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.sample.validator;
+package io.swagger.validator.spark;
 
 import spark.servlet.SparkApplication;
 import static spark.Spark.*;
@@ -15,6 +15,10 @@ public class App implements SparkApplication{
          System.out.println("inside servlet");
             return "helloworld";   
         });
+        get("/hello/:name", (req,resp)->{
+            System.out.println("inside servlet "+req.params("name"));
+               return "hello "+req.params("name");   
+           });
+        
     }
-
 }

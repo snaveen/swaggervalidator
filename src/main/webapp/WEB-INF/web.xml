@@ -5,9 +5,11 @@
 <web-app>
   <display-name>Sample swagger based validator </display-name>
   
+  
+  
   <filter>
         <filter-name>MyFilter</filter-name>
-        <filter-class>com.sample.SampleFilter</filter-class>
+        <filter-class>io.swagger.validator.ValidatorFilter</filter-class>
     </filter>
   
   
@@ -16,7 +18,7 @@
     <filter-class>spark.servlet.SparkFilter</filter-class>
     <init-param>
         <param-name>applicationClass</param-name>
-        <param-value>com.sample.validator.App</param-value>
+        <param-value>io.swagger.validator.spark.App</param-value>
     </init-param>
 </filter>
  <filter-mapping>
@@ -29,6 +31,8 @@
 </filter-mapping>
 
 
-
+<welcome-file-list>
+    <welcome-file>index.jsp</welcome-file>
+</welcome-file-list>
    
 </web-app>

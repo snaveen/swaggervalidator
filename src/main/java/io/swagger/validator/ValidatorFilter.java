@@ -1,9 +1,12 @@
-package com.sample;
+package io.swagger.validator;
 
 import io.swagger.models.Model;
 import io.swagger.models.Swagger;
 import io.swagger.parser.SwaggerParser;
 import io.swagger.util.ModelDeserializer;
+import io.swagger.validator.route.RouteEntry;
+import io.swagger.validator.route.RouteMatcherFactory;
+import io.swagger.validator.route.SimpleRouteMatcher;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -19,6 +22,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 
@@ -28,17 +32,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
-public class SampleFilter implements Filter {
+public class ValidatorFilter implements Filter {
 
 
+    private static final String HTTP_METHOD_OVERRIDE_HEADER = "X-HTTP-Method-Override";
+    private static final String ACCEPT_TYPE_REQUEST_MIME_HEADER = "Accept";
     protected FilterConfig config;
-    private Swagger swagger = null;
+    private Swagger swagger;
+    SimpleRouteMatcher matcher;
 
     public void init(FilterConfig config) throws ServletException {
         this.config = config;
         try {
             swagger = new SwaggerParser().read("C:\\Users\\naveens\\Downloads\\swagger2.json");
             Map<String, String> definitionsJsonSchemaMap = new HashMap<String, String>();
+            
+            
+            //Init routes here
+            matcher=RouteMatcherFactory.get();
+            matcher.addRoute("get", "/swaggervalidator/hello", "application/json");
+            matcher.addRoute("get", "/swaggervalidator/hello/{name}", "application/json");
 
             for (Entry<String, Model> entry : swagger.getDefinitions().entrySet()) {
                 definitionsJsonSchemaMap.put(entry.getKey(),
@@ -151,6 +164,11 @@ public class SampleFilter implements Filter {
 
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
             ServletException {
+        
+        RouteEntry routeEntry = getRouteEntry(request);
+        
+        System.out.println("Matching route entry: "+routeEntry);
+        
         System.out.println("inside filter");
         CharResponseWrapper wrappedResponse = new CharResponseWrapper((HttpServletResponse) response);
 
@@ -166,5 +184,27 @@ public class SampleFilter implements Filter {
         // else {
         // response.getOutputStream().write(bytes);
         // }
+    }
+
+    /**
+     * @param request
+     * @return
+     */
+    public RouteEntry getRouteEntry(ServletRequest request) {
+        //Find matching route
+        HttpServletRequest httpRequest=(HttpServletRequest) request;
+        String method = httpRequest.getHeader(HTTP_METHOD_OVERRIDE_HEADER);
+        if (method == null) {
+            method = httpRequest.getMethod();
+        }
+        String httpMethodStr = method.toLowerCase(); // NOSONAR
+        String uri = httpRequest.getPathInfo(); // NOSONAR
+        if(uri==null) {
+            uri=httpRequest.getRequestURI();
+        }
+        String acceptType = httpRequest.getHeader(ACCEPT_TYPE_REQUEST_MIME_HEADER);
+        
+        RouteEntry routeEntry=matcher.findTargetsForRequestedRoute(httpMethodStr, uri,acceptType);
+        return routeEntry;
     }
 }
